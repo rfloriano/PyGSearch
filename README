@@ -1,0 +1,6 @@
+DEPENDÊNCIAS:
+    ClientCookie
+    BeautifulSoup
+
+pip install BeautifulSoup
+pip install ClientCookie
