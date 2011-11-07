@@ -23,6 +23,8 @@ class Gsearch(object):
         "channel": "fs",
         "ie": "utf-8",
         "oe": "utf-8",
+        "tbm": "nws",
+        "tbs": "cdr:1,cd_min:2011,cd_max:2011,sbd:1",
     }
 
     _start = 0
@@ -33,12 +35,15 @@ class Gsearch(object):
     def _total(self):
         total = self.soup.find("div", id="subform_ctrl").findAll("div")[1].string
         try:
-            return int(re.search(r"\d\S+", total).group(0).replace("."))
+            num = re.search(r"\d\S+", total).group(0)
+            if num.find(".") > 0:
+                num = num.replace(".")
+            return int(num)
         except:
             return 0
 
     def _pages(self):
-        pages = len(self.soup.find("table", id="nav").findAll("td"))
+        pages = len(self.soup.find("table", id="nav").findAll("td")) - 2
         if pages < self.PER_PAGE:
             return pages
         else:
@@ -71,8 +76,10 @@ class Gsearch(object):
 
         for i in xrange(0, len(data)):
             results.append({
-                "title": data[i].find("h3").text,
-                "description": data[i].find("div", {"class": "s"}).text,
+                "title": data[i].find("td", {"valign": "top"}).find("h3").text,
+                "description": data[i].find("td", {"valign": "top"}).find("div").text,
+                "source": data[i].find("td", {"valign": "top"}).find("span", {"class": "f"}).text.split('-')[0].strip(),
+                "date": data[i].find("td", {"valign": "top"}).find("span", {"class": "f"}).text.split('-')[1].strip()
             })
         return results
 
