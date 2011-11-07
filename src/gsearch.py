@@ -75,8 +75,12 @@ class Gsearch(object):
         data = self.soup.find("div", id="res").findAll("li", {"class": "g"})
 
         for i in xrange(0, len(data)):
+            url = data[i].find("td", {"valign": "top"}).find("h3").find("a")["href"]
+            if url.startswith("/url?q="):
+                url = url.replace("/url?q=", "")
             results.append({
                 "title": data[i].find("td", {"valign": "top"}).find("h3").text,
+                "url": url,
                 "description": data[i].find("td", {"valign": "top"}).find("div").text,
                 "source": data[i].find("td", {"valign": "top"}).find("span", {"class": "f"}).text.split('-')[0].strip(),
                 "date": data[i].find("td", {"valign": "top"}).find("span", {"class": "f"}).text.split('-')[1].strip()
