@@ -8,6 +8,8 @@ import urllib
 import urlparse
 import re
 import os
+import hashlib
+import unicodedata
 import ClientCookie
 from urllib import urlencode
 from BeautifulSoup import BeautifulSoup
@@ -105,6 +107,7 @@ class Gsearch(object):
     def makeParams(self):
         data = self.params
         if self._start != 0:
+            print self.getParamsPage()
             data.update(self.getParamsPage())
         return urlencode(data)
 
@@ -121,27 +124,27 @@ class Gsearch(object):
     def results(self):
         results = []
 
-#        try:
-        dateranges = self.makeRange()
-        for daterange in dateranges:  # [:1]:
-            print "RANGE ---> %s" % daterange
-            response = self.request(daterange)
-            soup = BeautifulSoup(response)
-            self.makeFile(daterange, soup=soup, name=daterange.strip())
-            self.soup = soup
-            pages = self._pages(soup)
-            date = self._real_parts[dateranges.index(daterange)][0]
+        try:
+          dateranges = self.makeRange()
+          for daterange in dateranges:
+              print "RANGE ---> %s" % daterange
+              response = self.request(daterange)
+              soup = BeautifulSoup(response)
+              self.soup = soup
+              pages = self._pages(soup)
+              date = self._real_parts[dateranges.index(daterange)][0]
 
-            for page in pages:  # [0:5]:
-                print "Pagina %s" % page
-                results += self.parseResultsOfPage(soup, date.strftime("%d/%m/%Y"))
-                self.next()
-                response = self.request(daterange)
-                soup = BeautifulSoup(response)
-                self.soup = soup
-#        except Exception, e:
-#            print "ERROR ----> %s" % e
-#            self.resultsToFile(dateranges, daterange, page, results)
+              for page in pages:
+                  print "Pagina %s %s" % (page, self._start)
+                  results += self.parseResultsOfPage(soup, date.strftime("%d/%m/%Y"))
+  #                self.makeFile(daterange, soup=soup, name=daterange.strip()+"-"+str(page))
+                  self.next()
+                  response = self.request(daterange)
+                  soup = BeautifulSoup(response)
+                  self.soup = soup
+        except Exception, e:
+            print "ERROR ----> %s" % e
+            self.resultsToFile(dateranges, daterange, page, results)
 
         return results
 
@@ -163,7 +166,9 @@ class Gsearch(object):
             except Exception:
                 title = data[i].find("h3").text
 
-            if not hash(title) in self._results_hash:
+            normalized_title = unicodedata.normalize('NFKD', title).encode('ascii','ignore')
+            hashed_title = hashlib.sha256(normalized_title).hexdigest()
+            if not hashed_title in self._results_hash:
                 try:
                     description = data[i].find("td", {"valign": "top"}).find("div").text
                 except Exception:
@@ -181,9 +186,9 @@ class Gsearch(object):
                             now = datetime.now()
                             quantity, time, past = date.strip().split(" ")
                             quantity = int(quantity)
-                            if time == "horas":
+                            if time == "horas" or time == "hora":
                                 date = (now - relativedelta(hours=quantity)).strftime("%d/%m/%Y")
-                            elif time == "minutos":
+                            elif time == "minutos" or time == "minuto":
                                 date = (now - relativedelta(minutes=quantity)).strftime("%d/%m/%Y")
                         else:
                             day, month, year = date.strip().split(" ")
@@ -201,7 +206,7 @@ class Gsearch(object):
                     "source": source.strip(),
                     "date": date.strip()
                 })
-                self._results_hash.append(hash(title))
+                self._results_hash.append(hashed_title)
         return results
 
     def resultsToFile(self, dateranges, daterange, page, results):
@@ -224,6 +229,7 @@ class Gsearch(object):
         parse = urlparse.urlparse(url)
         data = dict(urlparse.parse_qsl(parse.query))
         data.pop("q")
+        data["start"] = self._start
         return data
 
     def next(self):
