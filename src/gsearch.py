@@ -118,30 +118,40 @@ class Gsearch(object):
             url,
             headers=self.headers
         )
+        proxy_support = urllib2.ProxyHandler({"http": "189.47.194.196:8118"})
+        opener = ClientCookie.build_opener(proxy_support)
+        ClientCookie.install_opener(opener)
         response = ClientCookie.urlopen(request)
+
+        # proxy_support = urllib2.ProxyHandler({"http": "127.0.0.1:8118"})
+        # opener = urllib2.build_opener(proxy_support)
+        # urllib2.install_opener(opener)
+        # response = urllib2.urlopen(request, timeout=50000)
+
+
         return response.read()
 
     def results(self):
         results = []
 
         try:
-          dateranges = self.makeRange()
-          for daterange in dateranges:
-              print "RANGE ---> %s" % daterange
-              response = self.request(daterange)
-              soup = BeautifulSoup(response)
-              self.soup = soup
-              pages = self._pages(soup)
-              date = self._real_parts[dateranges.index(daterange)][0]
+            dateranges = self.makeRange()
+            for daterange in dateranges:
+                print "RANGE ---> %s" % daterange
+                response = self.request(daterange)
+                soup = BeautifulSoup(response)
+                self.soup = soup
+                pages = self._pages(soup)
+                date = self._real_parts[dateranges.index(daterange)][0]
 
-              for page in pages:
-                  print "Pagina %s %s" % (page, self._start)
-                  results += self.parseResultsOfPage(soup, date.strftime("%d/%m/%Y"))
-  #                self.makeFile(daterange, soup=soup, name=daterange.strip()+"-"+str(page))
-                  self.next()
-                  response = self.request(daterange)
-                  soup = BeautifulSoup(response)
-                  self.soup = soup
+                for page in pages:
+                    print "Pagina %s %s" % (page, self._start)
+                    results += self.parseResultsOfPage(soup, date.strftime("%d/%m/%Y"))
+                    #                self.makeFile(daterange, soup=soup, name=daterange.strip()+"-"+str(page))
+                    self.next()
+                    response = self.request(daterange)
+                    soup = BeautifulSoup(response)
+                    self.soup = soup
         except Exception, e:
             print "ERROR ----> %s" % e
             self.resultsToFile(dateranges, daterange, page, results)
